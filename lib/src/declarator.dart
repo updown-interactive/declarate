@@ -28,7 +28,11 @@ import 'package:flutter/material.dart';
 class Declarator<T extends Declarate> extends StatefulWidget {
   final Widget Function(BuildContext context, T dc) builder;
   final void Function(BuildContext context, T dc)? listener;
-  final bool Function(T prev, T next)? buildWhen;
+  
+  /// Optional filter to control rebuilds. Return false to skip rebuild.
+  /// Note: Receives the current declarate state only - compare fields directly.
+  /// Example: `buildWhen: (dc) => dc.count > 0`
+  final bool Function(T declarate)? buildWhen;
 
   const Declarator({
     super.key,
@@ -43,29 +47,21 @@ class Declarator<T extends Declarate> extends StatefulWidget {
 
 class _DeclaratorState<T extends Declarate> extends State<Declarator<T>> {
   late T _declarate;
-  int? _previousVersion;
   bool _listenerAttached = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Don't access context here - wait for didChangeDependencies
-  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
+    
     final newDeclarate = Declarion.of<T>(context);
-
+    
     // Only attach listener once or when declarate instance changes
     if (!_listenerAttached || _declarate != newDeclarate) {
       if (_listenerAttached) {
         _declarate.removeListener(_onDeclarateChanged);
       }
-
+      
       _declarate = newDeclarate;
-      _previousVersion = _declarate.version;
       _declarate.addListener(_onDeclarateChanged);
       _listenerAttached = true;
     }
@@ -78,13 +74,10 @@ class _DeclaratorState<T extends Declarate> extends State<Declarator<T>> {
     widget.listener?.call(context, _declarate);
 
     // Check if we should rebuild
-    final shouldRebuild =
-        widget.buildWhen?.call(_declarate, _declarate) ?? true;
-
+    final shouldRebuild = widget.buildWhen?.call(_declarate) ?? true;
+    
     if (shouldRebuild) {
-      setState(() {
-        _previousVersion = _declarate.version;
-      });
+      setState(() {});
     }
   }
 

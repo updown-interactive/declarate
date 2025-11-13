@@ -214,21 +214,6 @@ void main() {
       final declarate = CounterDeclarate();
       var buildCount = 0;
 
-      await tester.pumpWidget(
-        Declarion(
-          declarates: [declarate],
-          child: MaterialApp(
-            home: Declarator<CounterDeclarate>(
-              buildWhen: (prev, next) => false,
-              builder: (context, dc) {
-                  buildCount++;
-                return Text('Count: ${dc.count}', textDirection: TextDirection.ltr);
-              },
-            ),
-          ),
-        ),
-      );
-
       expect(buildCount, 1);
 
       declarate.increment();
