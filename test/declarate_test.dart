@@ -7,7 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/declarate.dart';
+import 'package:declarate/declarate.dart';
 
 // ------------------------------------------------------------ //
 //  Mock Declarates for Testing
