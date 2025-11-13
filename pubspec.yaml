@@ -5,7 +5,7 @@ description: >
   SwiftUI and declarative architectures. Includes Declarate (logic holder), 
   Declarion (multi-provider), and Declarator (builder).
 
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/updown-interactive/declarate
 repository: https://github.com/updown-interactive/declarate
 issue_tracker: https://github.com/updown-interactive/declarate/issues

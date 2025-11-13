@@ -26,16 +26,8 @@ import 'package:flutter/material.dart';
 /// );
 /// ```
 class Declarator<T extends Declarate> extends StatefulWidget {
-  /// The function that builds the widget tree using the [Declarate].
   final Widget Function(BuildContext context, T dc) builder;
-
-  /// Optional callback for reacting to updates without rebuilding the UI.
   final void Function(BuildContext context, T dc)? listener;
-
-  /// Optional filter: decides whether to rebuild after a change.
-  /// If omitted, rebuilds on every [emit] or [react] call.
-  ///
-  /// The function receives the [declarate] before and after the update.
   final bool Function(T prev, T next)? buildWhen;
 
   const Declarator({
@@ -50,36 +42,60 @@ class Declarator<T extends Declarate> extends StatefulWidget {
 }
 
 class _DeclaratorState<T extends Declarate> extends State<Declarator<T>> {
-  late final T declarate;
-  late T _previousSnapshot;
+  late T _declarate;
+  int? _previousVersion;
+  bool _listenerAttached = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Don't access context here - wait for didChangeDependencies
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    declarate = Declarion.of<T>(context);
-    _previousSnapshot = declarate;
-    declarate.addListener(_onDeclarateChanged);
+
+    final newDeclarate = Declarion.of<T>(context);
+
+    // Only attach listener once or when declarate instance changes
+    if (!_listenerAttached || _declarate != newDeclarate) {
+      if (_listenerAttached) {
+        _declarate.removeListener(_onDeclarateChanged);
+      }
+
+      _declarate = newDeclarate;
+      _previousVersion = _declarate.version;
+      _declarate.addListener(_onDeclarateChanged);
+      _listenerAttached = true;
+    }
   }
 
   void _onDeclarateChanged() {
-    // Trigger listener first
-    widget.listener?.call(context, declarate);
+    if (!mounted) return;
 
-    // Rebuild if buildWhen allows or if no condition is provided
-    final shouldRebuild = widget.buildWhen?.call(_previousSnapshot, declarate) ?? true;
-    if (shouldRebuild && mounted) {
-      setState(() {});
+    // Call listener callback
+    widget.listener?.call(context, _declarate);
+
+    // Check if we should rebuild
+    final shouldRebuild =
+        widget.buildWhen?.call(_declarate, _declarate) ?? true;
+
+    if (shouldRebuild) {
+      setState(() {
+        _previousVersion = _declarate.version;
+      });
     }
-
-    _previousSnapshot = declarate;
   }
 
   @override
   void dispose() {
-    declarate.removeListener(_onDeclarateChanged);
+    if (_listenerAttached) {
+      _declarate.removeListener(_onDeclarateChanged);
+    }
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => widget.builder(context, declarate);
+  Widget build(BuildContext context) => widget.builder(context, _declarate);
 }

@@ -26,55 +26,38 @@ import 'package:flutter/material.dart';
 ///   });
 /// }
 /// ```
+/// Base class for Declarate — a stateless, reactive logic holder.
 abstract class Declarate extends ChangeNotifier {
   bool _disposed = false;
+  int _version = 0;
 
-  /// Notifies all listeners to rebuild (like setState),
-  /// automatically triggering lifecycle hooks.
+  /// Current version number - increments on each emit
+  int get version => _version;
+
+  /// Notifies all listeners to rebuild
   @protected
   void emit() {
     if (_disposed) return;
-
-    willEmit();
+    _version++;
     notifyListeners();
-    didEmit();
   }
 
-  /// Unified `react()` — automatically supports both sync and async blocks.
-  ///
-  /// Example:
-  /// ```dart
-  /// react(() => count++);                       // sync
-  /// react(() async { await Future.delayed(...); count++; });  // async
-  /// ```
+  /// Unified react() — supports both sync and async blocks
   @protected
   Future<void> react(FutureOr<void> Function() block) async {
     if (_disposed) return;
-
+    
     final result = block();
-
-    // If it's synchronous
+    
     if (result is! Future) {
-      if (_disposed) return;
-      emit();
+      if (!_disposed) emit();
       return;
     }
-
-    // If it's asynchronous
+    
     await result;
-    if (_disposed) return;
-    emit();
+    if (!_disposed) emit();
   }
 
-  /// Lifecycle hook — called before notifying listeners.
-  @protected
-  void willEmit() {}
-
-  /// Lifecycle hook — called after notifying listeners.
-  @protected
-  void didEmit() {}
-
-  /// Override dispose to mark this Declarate as disposed and call super.
   @override
   @mustCallSuper
   void dispose() {
@@ -82,7 +65,6 @@ abstract class Declarate extends ChangeNotifier {
     super.dispose();
   }
 
-  /// For testing or advanced use: whether this Declarate has been disposed.
   @protected
   bool get isDisposed => _disposed;
 }

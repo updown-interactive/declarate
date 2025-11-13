@@ -8,39 +8,57 @@ import 'package:flutter/material.dart';
 /// Similar to MultiBlocProvider, but lighter and Declar-style declarative.
 class Declarion extends InheritedWidget {
   final Map<Type, Declarate> _declarates;
+  final Map<Type, int> _versions;
 
   const Declarion._internal({
     super.key,
     required Map<Type, Declarate> declarates,
+    required Map<Type, int> versions,
     required super.child,
-  }) : _declarates = declarates;
+  }) : _declarates = declarates,
+       _versions = versions;
 
-  /// Creates a [Declarion] with one or more [DeclarateViewModel]s.
   factory Declarion({
     Key? key,
     required List<Declarate> declarates,
     required Widget child,
   }) {
-    final map = {for (final vm in declarates) vm.runtimeType: vm};
-    return Declarion._internal(key: key, declarates: map, child: child);
+    final map = <Type, Declarate>{};
+    final versions = <Type, int>{};
+    
+    for (final dc in declarates) {
+      final type = dc.runtimeType;
+      assert(!map.containsKey(type), 
+        'Duplicate Declarate type: $type. Each type can only be provided once.');
+      map[type] = dc;
+      versions[type] = dc.version;
+    }
+    
+    return Declarion._internal(
+      key: key, 
+      declarates: map, 
+      versions: versions,
+      child: child
+    );
   }
 
-  /// Retrieves a provided [Declarate] of type [T].
   static T of<T extends Declarate>(BuildContext context) {
-    final provider =
-        context.dependOnInheritedWidgetOfExactType<Declarion>();
+    final provider = context.dependOnInheritedWidgetOfExactType<Declarion>();
     assert(provider != null, 'No Declarion found in context');
-    final viewModel = provider!._declarates[T];
-    assert(viewModel != null,
-        'No ViewModel of type $T found in Declarion');
-    return viewModel as T;
+    
+    final declarate = provider!._declarates[T];
+    assert(declarate != null, 'No Declarate of type $T found in Declarion');
+    
+    return declarate as T;
   }
 
   @override
   bool updateShouldNotify(covariant Declarion oldWidget) {
-    if (_declarates.length != oldWidget._declarates.length) return true;
-    for (final key in _declarates.keys) {
-      if (_declarates[key] != oldWidget._declarates[key]) return true;
+    // Check if any Declarate version has changed
+    for (final type in _versions.keys) {
+      final oldVersion = oldWidget._versions[type] ?? -1;
+      final newVersion = _versions[type] ?? -1;
+      if (oldVersion != newVersion) return true;
     }
     return false;
   }
